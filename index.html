@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COVID-19 Surveillance Dashboard - นักวิชาการสาธารณสุข</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet Map CSS/JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map { height: 500px; border-radius: 0.75rem; }
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Header Bar -->
+    <header class="bg-teal-700 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold">ระบบเฝ้าระวังและรายงานการระบาดโควิด-19</h1>
+                <p class="text-teal-100 text-sm mt-1">รายงานสรุปข้อมูลทางระบาดวิทยา สำหรับนักวิชาการสาธารณสุข (12 เม.ย. - 1 พ.ค. 2565)</p>
+            </div>
+            <div class="mt-4 md:mt-0 bg-teal-800 px-4 py-2 rounded-lg text-xs text-teal-200">
+                สถานะระบบ: ข้อมูลอัปเดตสมบูรณ์
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-teal-600">
+                <p class="text-xs font-semibold uppercase text-slate-400">ผู้ติดเชื้อสะสมทั้งหมด</p>
+                <p class="text-3xl font-bold text-slate-800 mt-2">356,612 <span class="text-sm font-normal text-slate-500">ราย</span></p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-rose-500">
+                <p class="text-xs font-semibold uppercase text-slate-400">พื้นที่ระบาดสูงสุด (กทม.)</p>
+                <p class="text-3xl font-bold text-rose-600 mt-2">63,775 <span class="text-sm font-normal text-slate-500">ราย (17.9%)</span></p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-amber-500">
+                <p class="text-xs font-semibold uppercase text-slate-400">กลุ่มผู้สูงอายุ (60 ปี+)</p>
+                <p class="text-3xl font-bold text-amber-600 mt-2">68,942 <span class="text-sm font-normal text-slate-500">ราย (19.3%)</span></p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500">
+                <p class="text-xs font-semibold uppercase text-slate-400">จำนวนจังหวัดที่พบผู้ติดเชื้อ</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">77 <span class="text-sm font-normal text-slate-500">จังหวัด</span></p>
+            </div>
+        </div>
+
+        <!-- Section 1: Map and Top Provinces -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Map Container -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-slate-800">แผนที่แสดงการกระจายระดับจังหวัด (Geographic Distribution)</h2>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Interactive Map</span>
+                </div>
+                <div id="map"></div>
+            </div>
+
+            <!-- Top 10 Provinces Table -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">10 จังหวัดติดเชื้อสูงสุด</h2>
+                <div class="overflow-y-auto max-h-[460px]">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-100 sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2">จังหวัด</th>
+                                <th class="px-3 py-2 text-right">จำนวน (ราย)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100" id="provinceTable">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Demographic & Epidemiological Visualizations -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Age Distribution Chart -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">โครงสร้างกลุ่มอายุผู้ติดเชื้อ</h2>
+                <canvas id="ageChart"></canvas>
+            </div>
+
+            <!-- Gender Distribution Chart -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">สัดส่วนผู้ติดเชื้อตามเพศ</h2>
+                <canvas id="genderChart"></canvas>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 py-6 text-center text-xs mt-12">
+        <p>จัดทำโดย กลุ่มงานระบาดวิทยาและข้อมูลสาธารณสุข | พัฒนาด้วย Leaflet.js & Chart.js</p>
+    </footer>
+
+    <script>
+        // Data Top Provinces & Coordinates
+        const topProvinces = [
+            { name: "กรุงเทพมหานคร", count: 63775, lat: 13.7563, lng: 100.5018 },
+            { name: "ชลบุรี", count: 13794, lat: 13.3611, lng: 100.9847 },
+            { name: "ขอนแก่น", count: 12742, lat: 16.4322, lng: 102.8236 },
+            { name: "สมุทรปราการ", count: 11811, lat: 13.5991, lng: 100.5968 },
+            { name: "นนทบุรี", count: 9946, lat: 13.8591, lng: 100.5217 },
+            { name: "บุรีรัมย์", count: 9375, lat: 14.9930, lng: 103.1029 },
+            { name: "ศรีสะเกษ", count: 8886, lat: 15.1186, lng: 104.3220 },
+            { name: "นครศรีธรรมราช", count: 8511, lat: 8.4304, lng: 99.9631 },
+            { name: "ร้อยเอ็ด", count: 8079, lat: 16.0538, lng: 103.6520 },
+            { name: "สมุทรสาคร", count: 7688, lat: 13.5475, lng: 100.2744 },
+            { name: "นครปฐม", count: 7488, lat: 13.8196, lng: 100.0622 },
+            { name: "อุบลราชธานี", count: 7008, lat: 15.2287, lng: 104.8584 },
+            { name: "เชียงใหม่", count: 4695, lat: 18.7883, lng: 98.9853 },
+            { name: "สงขลา", count: 5172, lat: 7.1988, lng: 100.5951 },
+            { name: "ภูเก็ต", count: 3040, lat: 7.8804, lng: 98.3923 }
+        ];
+
+        // Populate Table
+        const tbody = document.getElementById('provinceTable');
+        topProvinces.slice(0, 10).forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="px-3 py-2 font-medium text-slate-800">${p.name}</td>
+                            <td class="px-3 py-2 text-right font-semibold text-teal-700">${p.count.toLocaleString()}</td>`;
+            tbody.appendChild(tr);
+        });
+
+        // Leaflet Map Initialization
+        const map = L.map('map').setView([13.736717, 100.523186], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add Circle Markers
+        topProvinces.forEach(p => {
+            const radius = Math.sqrt(p.count) * 1.2;
+            L.circleMarker([p.lat, p.lng], {
+                radius: radius,
+                color: '#e11d48',
+                fillColor: '#f43f5e',
+                fillOpacity: 0.6,
+                weight: 2
+            }).addTo(map).bindPopup(`<b>${p.name}</b><br>จำนวนผู้ติดเชื้อ: <b>${p.count.toLocaleString()}</b> ราย`);
+        });
+
+        // Age Chart
+        new Chart(document.getElementById('ageChart'), {
+            type: 'bar',
+            data: {
+                labels: ['0-11 ปี (เด็ก)', '12-19 ปี (วัยรุ่น)', '20-59 ปี (วัยทำงาน)', '60 ปีขึ้นไป (ผู้สูงอายุ)', 'ไม่ระบุ'],
+                datasets: [{
+                    label: 'จำนวนผู้ติดเชื้อ (ราย)',
+                    data: [36016, 15882, 204524, 68942, 31248],
+                    backgroundColor: ['#38bdf8', '#818cf8', '#0d9488', '#f59e0b', '#cbd5e1']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        // Gender Chart
+        new Chart(document.getElementById('genderChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['หญิง', 'ชาย', 'ไม่ระบุ'],
+                datasets: [{
+                    data: [203340, 135617, 17655],
+                    backgroundColor: ['#ec4899', '#3b82f6', '#94a3b8']
+                }]
+            },
+            options: { responsive: true }
+        });
+    </script>
+</body>
+</html>
